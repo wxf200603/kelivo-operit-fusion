@@ -1,10 +1,21 @@
 pluginManagement {
     val flutterSdkPath = run {
-        val properties = java.util.Properties()
-        file("local.properties").inputStream().use { properties.load(it) }
-        val flutterSdkPath = properties.getProperty("flutter.sdk")
-        require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
-        flutterSdkPath
+        val fromEnv = System.getenv("FLUTTER_ROOT")
+        if (fromEnv != null) fromEnv
+        else {
+            val properties = java.util.Properties()
+            val localProps = file("local.properties")
+            if (localProps.exists()) {
+                localProps.inputStream().use { properties.load(it) }
+            }
+            val fromProps = properties.getProperty("flutter.sdk")
+            if (fromProps != null) fromProps
+            else {
+                val flutterCmd = System.getenv("PATH")?.split(File.pathSeparator)?.map { File(it, "flutter") }?.firstOrNull { it.exists() }
+                if (flutterCmd != null) flutterCmd.parentFile.parentFile.absolutePath
+                else error("Flutter SDK not found. Set FLUTTER_ROOT env var or flutter.sdk in local.properties")
+            }
+        }
     }
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
@@ -14,7 +25,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://dl.bintray.com/rikkaw/Shizuku") }
     }
 }
 
