@@ -1,0 +1,155 @@
+name: Kelivo Operit Fusion 构建
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - '.github/workflows/build.yml'
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+  NDK_VERSION: '28.2.13676358'
+  FUSION_VERSION: '1.0.0'
+  CARGO_BUILD_JOBS: '2'
+  CMAKE_BUILD_PARALLEL_LEVEL: '2'
+  GRADLE_OPTS: '-Dorg.gradle.daemon=false'
+
+jobs:
+  build-apk:
+    name: 构建 arm64-v8a APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    steps:
+      - name: 释放磁盘空间
+        run: |
+          set -x
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost \
+                      /usr/share/swift /opt/hostedtoolcache/CodeQL \
+                      /usr/local/.ghcup \
+                      /usr/local/lib/android/sdk/system-images \
+                      /usr/local/lib/android/sdk/emulator \
+                      /usr/local/lib/android/sdk/ndk \
+                      /usr/local/lib/android/sdk/ndk-bundle
+          df -h /
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 配置 Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: 安装 Android NDK / 平台 / CMake
+        run: |
+          set -e
+          SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install \
+            "ndk;${NDK_VERSION}" \
+            "platforms;android-36" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "cmake;3.22.1"
+
+      - name: 注入 secrets fallback
+        run: |
+          mkdir -p lib/secrets
+          cat > lib/secrets/fallback.dart <<'DART'
+          const String siliconflowFallbackKey = '';
+          const String openaiFallbackKey = '';
+          DART
+
+      - name: 生成签名 keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/fusion-release.jks \
+            -storepass kelivofusion \
+            -alias kelivo-fusion \
+            -keypass kelivofusion \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Kelivo Operit Fusion, OU=Development, O=Kelivo, L=Unknown, ST=Unknown, C=US"
+          printf 'storeFile=fusion-release.jks\nstorePassword=kelivofusion\nkeyAlias=kelivo-fusion\nkeyPassword=kelivofusion\n' > android/key.properties
+          echo "签名配置已写入"
+
+      - name: 拉取依赖
+        run: flutter pub get
+
+      - name: 静态分析
+        continue-on-error: true
+        run: flutter analyze lib/ 2>&1 | tail -40
+
+      - name: 收敛 Gradle 内存
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/gradle.properties")
+          t = p.read_text(encoding="utf-8")
+          if "org.gradle.jvmargs=-Xmx8G" in t:
+              old = ("org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G "
+                     "-XX:ReservedCodeCacheSize=512m -XX:+HeapDumpOnOutOfMemoryError")
+              new = "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m"
+              t = t.replace(old, new, 1)
+          t += ("\norg.gradle.parallel=false"
+                "\norg.gradle.workers.max=2"
+                "\nkotlin.daemon.jvmargs=-Xmx1536m\n")
+          p.write_text(t, encoding="utf-8")
+          print("Gradle 内存配置已收敛")
+          PY
+
+      - name: 构建 release APK
+        run: |
+          df -h /
+          flutter build apk --release --target-platform android-arm64
+          echo "--- 构建完成 ---"
+          df -h /
+
+      - name: 整理产物
+        run: |
+          mkdir -p out
+          for f in build/app/outputs/flutter-apk/*.apk; do
+            base=$(basename "$f" .apk)
+            cp "$f" "out/kelivo-operit-fusion-${FUSION_VERSION}-${base}.apk"
+          done
+          ls -la out
+          sha256sum out/*.apk | tee out/SHA256SUMS.txt
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: kelivo-operit-fusion-apk
+          path: out/*
+          if-no-files-found: error
+
+      - name: 发布到 Release
+        if: ${{ github.event_name == 'push' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.FUSION_VERSION }}-${{ github.run_number }}
+          name: Kelivo Operit Fusion v${{ env.FUSION_VERSION }}
+          body: |
+            Kelivo × Operit 融合版 v${{ env.FUSION_VERSION }}
+            
+            - 基础 AI 聊天能力
+            - 会话管理 + 模型选择
+            - 6 通道原生桥接框架
+          files: out/*
+          draft: false
+          prerelease: false

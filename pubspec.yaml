@@ -1,0 +1,152 @@
+name: kelivo_operit_fusion
+description: "Kelivo × Operit 融合版 - Android端AI Agent平台"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+  flutter: ">=3.44.9"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # ── 核心状态管理 ──
+  provider: ^6.0.5
+
+  # ── 本地存储 ──
+  shared_preferences: ^2.2.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  drift: ^2.34.0
+  sqlite3: ^3.3.3
+
+  # ── 网络 ──
+  http: ^1.5.0
+  dio: 5.9.2
+
+  # ── UI 基础 ──
+  cupertino_icons: ^1.0.8
+  flutter_slidable: ^3.0.1
+  material_color_utilities: ^0.13.0
+  lucide_icons_flutter: ^3.1.13
+  dynamic_color: ^1.8.1
+  flutter_displaymode: ^0.7.0
+  animations: ^2.0.11
+  flutter_animate: ^4.5.2
+
+  # ── 工具 ──
+  uuid: ^4.5.0
+  path: ^1.9.1
+  path_provider: ^2.1.4
+  intl: ^0.20.2
+  crypto: ^3.0.3
+  archive: ^4.2.0
+  xml: ^6.5.0
+
+  # ── UI 组件 ──
+  flutter_svg: ^2.2.1
+  url_launcher: ^6.3.2
+  package_info_plus: ^8.3.1
+  share_plus: ^11.1.0
+  pretty_qr_code: ^3.5.0
+  mobile_scanner: ^7.0.1
+  image_picker: 1.1.2
+  image_cropper: ^12.2.1
+  image_gallery_saver_plus: ^4.0.1
+
+  # ── Markdown / 代码高亮 ──
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+
+  # ── 文档处理 ──
+  syncfusion_flutter_core: ^31.2.5
+  syncfusion_flutter_sliders: ^31.2.5
+  syncfusion_flutter_pdf: ^31.2.5
+
+  # ── 语音 ──
+  audioplayers: ^6.5.1
+  record: ^7.1.1
+  speech_to_text: ^7.4.0
+  sherpa_onnx: 1.12.20
+  flutter_tts:
+    path: ./dependencies/flutter_tts
+
+  # ── Web ──
+  webview_flutter: ^4.13.1
+
+  # ── 权限 ──
+  permission_handler: ^12.0.3
+
+  # ── 通知 ──
+  flutter_local_notifications: ^17.2.3
+
+  # ── 图片处理 ──
+  image: ^4.8.0
+
+  # ── 数学公式 ──
+  math_expressions: ^2.6.2
+
+  # ── 本地依赖（从 Kelivo 复制） ──
+  gpt_markdown:
+    path: ./dependencies/gpt_markdown
+  mcp_client:
+    path: ./dependencies/mcp_client
+  terminal_view:
+    path: ./dependencies/terminal_view
+  flutter_math_fork:
+    path: ./dependencies/flutter_math_fork
+  downsize:
+    path: ./dependencies/downsize
+
+  # ── 其他 ──
+  restart_app: ^1.8.3
+  wakelock_plus: ^1.3.3
+  diffutil_dart: ^5.0.0
+  glob: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  build_runner: ^2.4.0
+  drift_dev: ^2.34.0
+  flutter_lints: ^5.0.0
+
+dependency_overrides:
+  sherpa_onnx_android: 1.12.20
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/app_icon.png
+    - assets/mermaid.min.js
+    - assets/html/mark.html
+    - assets/skills/skill-creator/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/app_icon_foreground.png
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/app_icon_foreground.png
+  remove_alpha_ios: true
+
+flutter_native_splash:
+  android: true
+  ios: true
+  color: "#FFFFFF"
+  color_dark: "#000000"
+  image: assets/start.png
+  image_dark: assets/start.png
+  ios_content_mode: center
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#000000"
+    image: assets/start.png
+    image_dark: assets/start.png
